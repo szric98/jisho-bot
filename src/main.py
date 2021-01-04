@@ -5,17 +5,17 @@ import http3
 from bs4 import BeautifulSoup
 
 load_dotenv()
+
 TOKEN = os.getenv('TOKEN')
 JISHO_URL = 'https://jisho.org/search/'
 
 client = http3.AsyncClient()
-
 bot = commands.Bot(command_prefix='!')
 
 
-@bot.command(name='jisho', help='Search jisho.org')
+@bot.command(name='j', help='Search jisho.org')
 async def search_jisho(ctx, arg):
-    response = await client.get(JISHO_URL+arg)
+    response = await client.get(JISHO_URL + arg)
     soup = BeautifulSoup(response.text, 'html.parser')
     readings = soup.select('div.concept_light-representation > span.furigana')
     words = soup.select('div.concept_light-representation > span.text')
@@ -28,13 +28,13 @@ async def search_jisho(ctx, arg):
 
     for index, reading in enumerate(readings):
         furigana = ''
-        for r in reading('span', attrs={'class': "kanji"}):
+        for r in reading.find_all('span', attrs={'class': "kanji"}):
             furigana += r.text
         res[index].update({"furigana": furigana})
 
     for index, meaning in enumerate(meanings):
         entry = ''
-        for m in meaning('span', attrs={"class": "meaning-meaning"}):
+        for m in meaning.find_all('span', attrs={"class": "meaning-meaning"}):
             entry += f'{m.text} '
         res[index].update({"meaning": entry})
 
@@ -45,7 +45,7 @@ async def search_jisho(ctx, arg):
     await ctx.channel.send(message)
 
 
-@ bot.event
+@bot.event
 async def on_ready():
     print(f'{bot.user.name} has connected to Discord!')
 

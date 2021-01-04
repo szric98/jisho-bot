@@ -21,26 +21,28 @@ async def search_jisho(ctx, arg):
     words = soup.select('div.concept_light-representation > span.text')
     meanings = soup.select('.meanings-wrapper')
 
-    # print(meanings)
+    res = []
 
-    results = ''
+    for word in words:
+        res.append({"word": word.text.strip()})
 
-    for i in range(len(readings)):
+    for index, reading in enumerate(readings):
         furigana = ''
-        for r in readings[i].descendants:
-            if not str(r).replace(' ', '').startswith('<') and str(r) != '\n':
-                furigana += r
+        for r in reading('span', attrs={'class': "kanji"}):
+            furigana += r.text
+        res[index].update({"furigana": furigana})
 
-        word = words[i].getText().replace(' ', '').replace('\n', '')
+    for index, meaning in enumerate(meanings):
+        entry = ''
+        for m in meaning('span', attrs={"class": "meaning-meaning"}):
+            entry += f'{m.text} '
+        res[index].update({"meaning": entry})
 
-        meaning = ''
+    message = ''
+    for r in res:
+        message += f'{r["word"]}【{r["furigana"]}】: {r["meaning"]}\n'
 
-        for m in meanings[i].find_all('span', attrs={"class": "meaning-meaning"}):
-            meaning += m.getText()+' '
-
-        results += f'{word}【{furigana}】: {meaning}\n'
-
-    await ctx.channel.send(results)
+    await ctx.channel.send(message)
 
 
 @ bot.event

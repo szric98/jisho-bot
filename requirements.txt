@@ -1,3 +1,0 @@
-discord.py
-bs4.py
-http3.py

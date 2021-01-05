@@ -6,6 +6,8 @@ name = "pypi"
 [packages]
 "discord.py" = "*"
 python-dotenv = "*"
+http3 = "*"
+bs4 = "*"
 
 [dev-packages]
 flake8 = "*"

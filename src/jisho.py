@@ -1,19 +1,38 @@
 from bs4 import BeautifulSoup
-from utils import latin_char_only
 
 
 def parse_result(result):
-    message = ''
-    for r in result:
-        message += f'{r["word"]}【{r["furigana"]}】: {r["meaning"]}\n'
+    # if we get an empty list,
+    if not result:
+        return '```Not found```'
+
+    # display only the first 10
+    display = result[:10]
+
+    message = '```md\n'
+    for d in display:
+        if not d["furigana"]:
+            message += f'# {d["word"]}\n{d["meaning"]}'
+        else:
+            message += f'# {d["word"]}【{d["furigana"]}】\n{d["meaning"]}'
+    message += '```'
     return message
+
+
+def span_is_empty(span):
+    return not span.text
+
+
+def furigana_is_provided(reading):
+    return reading.text.strip()
 
 
 def jisho_query(response):
     soup = BeautifulSoup(response.text, 'html.parser')
     readings = soup.select('div.concept_light-representation > span.furigana')
     words = soup.select('div.concept_light-representation > span.text')
-    meanings = soup.select('.meanings-wrapper')
+    meanings = soup.select(
+        'div.exact_block > div.concept_light > div.concept_light-meanings > div.meanings-wrapper, div.concepts > div.concept_light > div.concept_light-meanings > div.meanings-wrapper')
 
     result = []
 
@@ -22,16 +41,22 @@ def jisho_query(response):
 
     for index, reading in enumerate(readings):
         furigana = ''
-        for r in reading.find_all('span', attrs={'class': "kanji"}):
-            furigana += r.text
+        if furigana_is_provided(reading):
+            spans = reading.find_all('span')
+            for i in range(len(spans)):
+                if span_is_empty(spans[i]):
+                    furigana += result[index]["word"][i]
+                else:
+                    furigana += spans[i].text
         result[index].update({"furigana": furigana})
 
     for index, meaning in enumerate(meanings):
         entry = ''
-        for m in meaning.find_all('span', attrs={"class": "meaning-meaning"}):
+        for i, m in enumerate(meaning.find_all('span', attrs={"class": "meaning-meaning"})):
             # if it contains any kanji, it's the "other forms" column, so it should be skipped
-            if latin_char_only(m.text):
-                entry += f'{m.text} '
+            if m.text.isascii():
+                no = (str(i+1) + '.').rjust(3)
+                entry += f'\t{no} {m.text}\n'
         result[index].update({"meaning": entry})
 
     return result
